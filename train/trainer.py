@@ -4,13 +4,12 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from train.dataset import Dataset_for_MLM
-from base import PATH_TO_DATA, BATCH_SIZE, LEARNING_RATE, EPOCHS, NUMBER_EXAMPLES, DEVICE, TRAIN_TEST_SPLIT
 
 
 #The trainer class loads the dataset, trains and tests the model with MLM objective 
 
 class MLMTrainer:
-    def __init__(self, model, tokenizer, dataset_path = PATH_TO_DATA, batch_size=BATCH_SIZE, lr= LEARNING_RATE, epochs=EPOCHS, device = DEVICE, n_examples = NUMBER_EXAMPLES, split = TRAIN_TEST_SPLIT):
+    def __init__(self, model, tokenizer, dataset_path, batch_size, lr, epochs, device, n_examples, split):
         self.model = model
         self.tokenizer = tokenizer
         self.dataset_path = dataset_path

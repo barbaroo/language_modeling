@@ -1,12 +1,9 @@
 import random
 from torch.utils.data import Dataset
-from base import MASK_PROBABILITY
-
 
 #Tokenize text, create pytorch tensors, create masks for MLM and export a pytorch dataset
-
 class Dataset_for_MLM(Dataset):
-    def __init__(self, texts, tokenizer, mask_prob= MASK_PROBABILITY):
+    def __init__(self, texts, tokenizer, mask_prob):
         self.texts = texts
         self.tokenizer = tokenizer
         self.mask_prob = mask_prob
