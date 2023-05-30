@@ -1,5 +1,5 @@
-MODEL_NAME: 'vesteinn/ScandiBERT-no-faroese'
-PATH_TO_DATA: 'data/faroese/Faroese.csv'
+MODEL_NAME: "vesteinn/ScandiBERT-no-faroese"
+PATH_TO_DATA: "data/faroese/Faroese.csv"
 # OUTPUT_DIR: './results'
 
 BATCH_SIZE: 8
