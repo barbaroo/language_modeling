@@ -10,4 +10,6 @@ model = AutoModelForMaskedLM.from_pretrained(MODEL_NAME)
 trainer = MLMTrainer(model, tokenizer)
 trainer.train()
 
+#Test model
+trainer.test()
 

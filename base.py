@@ -6,6 +6,7 @@ PATH_TO_DATA = 'data/faroese/Faroese.csv'
 #OUTPUT_DIR='./results
 
 BATCH_SIZE = 8
+TRAIN_TEST_SPLIT = 0.2
 LEARNING_RATE = 2e-5
 EPOCHS = 2
 MAX_TOKENS = 514
