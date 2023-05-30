@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 from base import MASK_PROBABILITY
 
 
+#Tokenize text, create pytorch tensors, create masks for MLM and export a pytorch dataset
 
 class Dataset_for_MLM(Dataset):
     def __init__(self, texts, tokenizer, mask_prob= MASK_PROBABILITY):
@@ -19,6 +20,7 @@ class Dataset_for_MLM(Dataset):
         input_ids = inputs['input_ids']
         attention_mask = inputs['attention_mask']
 
+        #Create masks for masked language modeling
         masked_indices = [i for i, token in enumerate(input_ids[0]) if token != self.tokenizer.pad_token_id]
         num_masked = max(1, int(len(masked_indices) * self.mask_prob))
         masked_indices = random.sample(masked_indices, num_masked)

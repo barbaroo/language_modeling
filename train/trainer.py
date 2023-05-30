@@ -6,6 +6,9 @@ from sklearn.model_selection import train_test_split
 from train.dataset import Dataset_for_MLM
 from base import PATH_TO_DATA, BATCH_SIZE, LEARNING_RATE, EPOCHS, NUMBER_EXAMPLES, DEVICE, TRAIN_TEST_SPLIT
 
+
+#The trainer class loads the dataset, trains and tests the model with MLM objective 
+
 class MLMTrainer:
     def __init__(self, model, tokenizer, dataset_path = PATH_TO_DATA, batch_size=BATCH_SIZE, lr= LEARNING_RATE, epochs=EPOCHS, device = DEVICE, n_examples = NUMBER_EXAMPLES, split = TRAIN_TEST_SPLIT):
         self.model = model
@@ -21,6 +24,8 @@ class MLMTrainer:
     def load_dataset(self):
         data = pd.read_csv(self.dataset_path)
         sentences = data['Text'].tolist()[:self.n_examples]
+        
+        #Split sentences into train and test set
         sentences_train, sentences_test = train_test_split(sentences, test_size= self.split, random_state=42)
         dataset_train = Dataset_for_MLM(sentences_train, self.tokenizer)
         dataset_test = Dataset_for_MLM(sentences_test, self.tokenizer)
@@ -36,6 +41,8 @@ class MLMTrainer:
         self.model.train()
 
         num_training_steps = self.epochs * len(dataloader)
+        
+        #Training loop
         for epoch in range(self.epochs):
             loop = tqdm(dataloader, leave=True)
             for batch in loop:
@@ -58,7 +65,8 @@ class MLMTrainer:
         self.model.eval()
         dataset_train, dataset_test = self.load_dataset()
         test_dataloader = DataLoader(dataset_test, batch_size=self.batch_size, shuffle=False)
-
+        
+        #Calculate loss over test set
         with torch.no_grad():
             total_loss = 0
             total_examples = 0
