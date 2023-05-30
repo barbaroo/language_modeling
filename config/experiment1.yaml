@@ -1,0 +1,5 @@
+model:
+  name: ${cfg.model.name}
+
+trainer:
+  epochs: 10

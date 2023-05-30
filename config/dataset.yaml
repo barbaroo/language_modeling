@@ -1,0 +1,4 @@
+dataset:
+  sentences: ${hydra:runtime.cwd}/${cfg.dataset.sentences}
+  mask_probability: ${cfg.dataset.mask_probability}
+  max_tokens: ${cfg.dataset.max_tokens}

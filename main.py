@@ -1,28 +1,26 @@
+import hydra
 import torch
-import yaml
+from omegaconf import DictConfig
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from train.data_model import MLMTrainerParams
 from train.trainer import MLMTrainer
 
 
-def main():
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+@hydra.main(config_path="./config/", config_name="config")
+def main(cfg: DictConfig):
+    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    with open("config.yaml") as f:
-        config = yaml.safe_load(f)
-
-    model_name = config["MODEL_NAME"]
-    path_to_data = config["PATH_TO_DATA"]
-
-    batch_size = config["BATCH_SIZE"]
-    train_test_split = config["TRAIN_TEST_SPLIT"]
-    learning_rate = float(config["LEARNING_RATE"])
-    epochs = config["EPOCHS"]
-    max_tokens = config["MAX_TOKENS"]
-    number_examples = config["NUMBER_EXAMPLES"]
-    device = torch.device(DEVICE)
-    mask_probability = config["MASK_PROBABILITY"]
+    model_name = cfg.model.name
+    path_to_data = cfg.dataset.sentences
+    batch_size = cfg.trainer.batch_size
+    train_test_split = cfg.dataset.train_test_split
+    learning_rate = cfg.trainer.lr
+    epochs = cfg.trainer.epochs
+    max_tokens = cfg.dataset.max_tokens
+    device = DEVICE
+    number_examples = cfg.dataset.n_examples
+    mask_probability = cfg.dataset.mask_probability
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForMaskedLM.from_pretrained(model_name)

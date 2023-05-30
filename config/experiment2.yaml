@@ -1,0 +1,5 @@
+model:
+  name: "vesteinn/FoBERT"
+
+trainer:
+  epochs: 10
