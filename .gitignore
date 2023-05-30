@@ -1,0 +1,6 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+train/__pycache__/
+
+#Data folder
+data
