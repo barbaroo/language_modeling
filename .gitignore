@@ -1,7 +1,31 @@
-# Byte-compiled / optimized / DLL files
+# Python specific
+*.pyc
+*.pyo
+*.pyd
 __pycache__/
-.ipynb_checkpoints/
-train/__pycache__/
 
-#Data folder
-data
+# Virtual environments
+venv/
+env/
+env.bak/
+
+# Development tools
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Compiled files
+*.o
+*.pyc
+*.so
+*.dll
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+!data/
+
+# Ignore the /data/* directory
+/data/*

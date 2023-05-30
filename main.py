@@ -2,37 +2,44 @@ import torch
 import yaml
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
+from train.data_model import MLMTrainerParams
 from train.trainer import MLMTrainer
 
 
 def main():
-    # Load YAML configuration file
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     with open("config.yaml") as f:
         config = yaml.safe_load(f)
 
-    # Access parameters from the configuration file
     model_name = config["MODEL_NAME"]
     path_to_data = config["PATH_TO_DATA"]
-    # output_dir = config['OUTPUT_DIR']  # Uncomment if needed
 
     batch_size = config["BATCH_SIZE"]
     train_test_split = config["TRAIN_TEST_SPLIT"]
-    learning_rate = config["LEARNING_RATE"]
+    learning_rate = float(config["LEARNING_RATE"])
     epochs = config["EPOCHS"]
     max_tokens = config["MAX_TOKENS"]
     number_examples = config["NUMBER_EXAMPLES"]
-    device = torch.device(config["DEVICE"])
+    device = torch.device(DEVICE)
     mask_probability = config["MASK_PROBABILITY"]
 
-    # Initialize model and tokenizers
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForMaskedLM.from_pretrained(model_name)
 
-    # Train model
-    trainer = MLMTrainer(model, tokenizer)
-    trainer.train()
+    params = MLMTrainerParams(
+        dataset_path=path_to_data,
+        batch_size=batch_size,
+        lr=learning_rate,
+        epochs=epochs,
+        device=device,
+        n_examples=number_examples,
+        split=train_test_split,
+        mask_probability=mask_probability,
+    )
 
-    # Test model
+    trainer = MLMTrainer(model, tokenizer, params)
+    trainer.train()
     trainer.test()
 
 
