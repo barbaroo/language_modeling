@@ -1,0 +1,18 @@
+seed: 42
+num_workers: null
+batch_size: 8
+lr: 0.00002
+defaults:
+  - _self_
+  - dataset
+  - dev
+  - trainer
+
+model:
+  name: "vesteinn/ScandiBERT-no-faroese"
+
+dataset:
+  sentences: "../data/Faroese.csv"
+  train_test_split: 0.2
+  mask_probability: 0.15
+  max_tokens: 514

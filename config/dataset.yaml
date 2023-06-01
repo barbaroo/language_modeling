@@ -1,4 +1,4 @@
 dataset:
-  sentences: ${hydra:runtime.cwd}/${cfg.dataset.sentences}
-  mask_probability: ${cfg.dataset.mask_probability}
-  max_tokens: ${cfg.dataset.max_tokens}
+  sentences: "${hydra:runtime.cwd}/data/Faroese.csv"
+  mask_probability: 0.15
+  max_tokens: 514

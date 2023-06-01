@@ -1,0 +1,5 @@
+extends:
+  - dev.yaml
+
+limit_train_batches: 50
+limit_val_batches: 10

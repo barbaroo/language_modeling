@@ -1,0 +1,19 @@
+trainer:
+  devices: auto
+  accelerator: auto
+  strategy: auto
+  num_nodes: 1
+  precision: 16
+  max_steps: -1
+  enable_progress_bar: true
+  accumulate_grad_batches: 1
+  benchmark: null
+  deterministic: false
+  check_val_every_n_epoch: 1
+  default_root_dir: "results/mlm_logs"
+  enable_checkpointing: true
+  fast_dev_run: false
+  gradient_clip_val: null  # Set to null to use the default value
+  limit_train_batches: null  # Set to null to use the default value
+  limit_val_batches: null  # Set to null to use the default value
+  max_epochs: null
