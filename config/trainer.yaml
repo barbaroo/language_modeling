@@ -10,7 +10,7 @@ trainer:
   benchmark: null
   deterministic: false
   check_val_every_n_epoch: 1
-  default_root_dir: "results/mlm_logs"
+  default_root_dir: "${hydra:runtime.cwd}"
   enable_checkpointing: true
   fast_dev_run: false
   gradient_clip_val: null  # Set to null to use the default value

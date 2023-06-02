@@ -56,7 +56,7 @@ class ModelTraining:
         """
         return pl.Trainer(
             **self.cfg.trainer,
-            logger=pl.loggers.TensorBoardLogger(save_dir=self.cfg.trainer.default_root_dir, name="mlm_logs"),
+            logger=pl.loggers.TensorBoardLogger(save_dir=f"{self.cfg.trainer.default_root_dir}/logs", name="mlm_logs"),
             callbacks=self.get_callbacks(),
         )
 
