@@ -1,39 +1,33 @@
 import logging
-from typing import List
+from typing import Any
 
 import hydra
-import pytorch_lightning as pl
+import torch
 from omegaconf import DictConfig, OmegaConf
-from pytorch_lightning.callbacks import Callback
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
-from train.dataset import DatasetForMLM
-from train.trainer import MLMTrainer
+from mlmodel import MLMModel
+from train.mlm_data_module import MLMDataModule
 
-class ModelTraining:
-    """Class for training a masked language model."""
 
-    def __init__(self, cfg: DictConfig):
-        """
-        Initialize the ModelTraining class.
+class MLMPipeline:
+    """Main class to handle Masked Language Model training using PyTorch Lightning."""
 
-        Args:
-            cfg (DictConfig): Configuration options from Hydra.
-        """
-        self.cfg = cfg
-        self.tokenizer = AutoTokenizer.from_pretrained(cfg.model.name)
-        self.model = AutoModelForMaskedLM.from_pretrained(cfg.model.name)
-        self.dataset = DatasetForMLM(cfg.dataset.sentences, self.tokenizer, cfg.dataset.mask_probability, cfg.dataset.max_tokens)
+    def __init__(self, config: DictConfig):
+        self.config = config
+        self.log = logging.getLogger(__name__)
+        self.log.setLevel(logging.INFO)
 
-    def get_callbacks(self) -> List[Callback]:
-        """
-        Get the list of callbacks for the trainer.
+    def create_trainer(self) -> Trainer:
+        """Function to create a PyTorch Lightning Trainer with given configurations.
 
         Returns:
-            List[Callback]: List of PyTorch Lightning Callbacks.
+            Trainer: Initialized PyTorch Lightning Trainer.
         """
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            dirpath="checkpoints",
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=f"{self.config.trainer.default_root_dir}/checkpoints",
             filename="{epoch}-{val_loss:.4f}",
             save_top_k=1,
             verbose=True,
@@ -41,67 +35,79 @@ class ModelTraining:
             mode="min",
         )
 
-        return [
-            checkpoint_callback,
-            pl.callbacks.EarlyStopping(monitor="val_loss", patience=10, verbose=True),
-            pl.callbacks.LearningRateMonitor(logging_interval="step"),
-        ]
-
-    def get_trainer(self) -> pl.Trainer:
-        """
-        Get the PyTorch Lightning Trainer.
-
-        Returns:
-            pl.Trainer: PyTorch Lightning Trainer.
-        """
-        return pl.Trainer(
-            **self.cfg.trainer,
-            logger=pl.loggers.TensorBoardLogger(save_dir=f"{self.cfg.trainer.default_root_dir}/logs", name="mlm_logs"),
-            callbacks=self.get_callbacks(),
+        early_stop_callback = EarlyStopping(
+            monitor="val_loss", patience=self.config.early_stopping_patience, mode="min"
         )
 
-    def train(self) -> None:
-        """
-        Train the model.
-        """
-        trainer = self.get_trainer()
-        mlm_trainer = MLMTrainer(
-            self.model,
-            self.tokenizer,
-            self.dataset,
-            self.cfg.batch_size,
-            self.cfg.lr,
-            self.cfg.num_workers,
-            self.cfg.trainer.gradient_clip_val,
-            self.cfg.trainer.accumulate_grad_batches,
-            self.cfg.dataset.train_test_split,
+        # Before creating the DeepSpeedPlugin, validate the config
+        # if 'config_file_or_dict' not in self.config.deepspeed_config:
+        #    raise ValueError("Missing required key 'config_file_or_dict' in deepspeed config.")
+
+        # deepspeed_plugin = DeepSpeedPlugin(
+        #    **self.config.deepspeed_config
+        # )
+
+        return Trainer(
+            logger=True,
+            max_epochs=self.config.trainer.max_epochs,
+            enable_progress_bar=self.config.trainer.enable_progress_bar,
+            enable_model_summary=self.config.trainer.enable_model_summary,
+            gradient_clip_val=self.config.trainer.gradient_clip_val,
+            accumulate_grad_batches=self.config.trainer.accumulate_grad_batches,
+            limit_train_batches=self.config.trainer.limit_train_batches,
+            limit_val_batches=self.config.trainer.limit_val_batches,
+            devices=self.config.trainer.devices,
+            accelerator=self.config.trainer.accelerator,
+            strategy=self.config.trainer.strategy,
+            precision=self.config.trainer.precision,
+            fast_dev_run=self.config.trainer.fast_dev_run,
+            deterministic=self.config.trainer.deterministic,
+            check_val_every_n_epoch=self.config.trainer.check_val_every_n_epoch,
+            num_nodes=self.config.trainer.num_nodes,
+            benchmark=self.config.trainer.benchmark,
+            callbacks=[checkpoint_callback, early_stop_callback],
         )
-        trainer.fit(mlm_trainer)
+
+    def run(self) -> None:
+        """Main function to run the MLM training pipeline.
+
+        Raises:
+            Exception: Any exception that occurs during the training process.
+        """
+        self.log.info(OmegaConf.to_yaml(self.config))
+
+        torch.manual_seed(self.config.seed)
+
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(self.config.model.name)
+            datamodule = MLMDataModule(tokenizer, self.config.dataset)
+            datamodule.prepare_data()
+            model = MLMModel(self.config.model, self.config.optimizer)
+            model.model = AutoModelForMaskedLM.from_pretrained(self.config.model.name)
+        except Exception as e:
+            self.log.exception("An error occurred during data preparation or model initialization: %s", str(e))
+            raise e
+
+        trainer = self.create_trainer()
+
+        self.log.info("Starting training.")
+        try:
+            trainer.fit(model, datamodule)
+        except Exception as e:
+            self.log.exception("Training failed with an exception: %s", str(e))
+            raise e
+        self.log.info("Training completed.")
 
 
-@hydra.main(config_path="./config/", config_name="base")
+@hydra.main(config_path="config", config_name="base")
 def main(cfg: DictConfig) -> None:
-    """
-    Main function for training a masked language model.
+    """Entry point for the script, creates an instance of MLMPipeline and runs the pipeline.
 
     Args:
-        cfg (DictConfig): Configuration options from Hydra.
+        cfg (DictConfig): Configuration object from Hydra.
     """
-    if cfg.num_workers is None:
-        import multiprocessing
-        num_cores = multiprocessing.cpu_count()
-        cfg.num_workers = num_cores
-
-    print(OmegaConf.to_yaml(cfg))
-    pl.seed_everything(cfg.seed)  # Set a seed for reproducibility
-
-    model_training = ModelTraining(cfg)
-
-    try:
-        model_training.train()
-    except FileNotFoundError as e:
-        logging.exception("An error occurred during training.")
-        raise e
+    pipeline = MLMPipeline(cfg)
+    pipeline.run()
 
 
 if __name__ == "__main__":

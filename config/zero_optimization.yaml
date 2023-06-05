@@ -1,0 +1,4 @@
+zero_optimization:
+  stage: 2
+  cpu_offload: true
+  cpu_offload_params: true

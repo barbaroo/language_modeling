@@ -1,0 +1,5 @@
+activation_checkpointing:
+  partition_activations: true
+  cpu_checkpointing: true
+  contiguous_memory_optimization: true
+  profile_backward: false

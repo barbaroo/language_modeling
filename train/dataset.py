@@ -1,63 +1,60 @@
-import random
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import torch
-from torch.utils.data import DataLoader, Dataset
-from transformers import AutoTokenizer
+from torch.utils.data import Dataset
+from transformers import PreTrainedTokenizerBase
 
 
 class DatasetForMLM(Dataset):
-    """Dataset class for masked language modeling."""
+    """Dataset for the MLM model.
 
-    def __init__(self, texts: List[str], tokenizer: AutoTokenizer, mask_prob: float, max_tokens: int):
-        """Initialize the DatasetForMLM.
+    Args:
+        sentences (List[str]): The sentences in the dataset.
+        tokenizer (PreTrainedTokenizerBase): The tokenizer used to encode the sentences.
+        max_tokens (int): The maximum number of tokens per sentence.
 
-        Args:
-            texts (List[str]): List of sentences for training.
-            tokenizer (transformers.AutoTokenizer): Tokenizer for tokenizing the input.
-            mask_prob (float): Probability of masking tokens in the input sequence.
-            max_tokens (int): Maximum number of tokens in a sequence.
-        """
-        self.texts = texts
+    Methods:
+        __len__(): Returns the number of sentences in the dataset.
+        __getitem__(): Returns a dictionary containing the input_ids, attention_mask, and labels for the given sentence.
+    """
+
+    def __init__(self, sentences: List[str], tokenizer: PreTrainedTokenizerBase, max_tokens: int):
+        super().__init__()
+        self.sentences = sentences
         self.tokenizer = tokenizer
-        self.mask_prob = mask_prob
         self.max_tokens = max_tokens
 
     def __len__(self) -> int:
-        """Get the length of the dataset.
+        """Returns the number of sentences in the dataset.
 
         Returns:
-            int: Length of the dataset.
+            int: The number of sentences in the dataset.
         """
-        return len(self.texts)
+        return len(self.sentences)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """Get an item from the dataset.
+        """Returns a dictionary containing the input_ids, attention_mask, and labels for the given sentence.
 
         Args:
-            idx (int): Index of the item.
+            idx (int): Index of the sentence.
 
         Returns:
-            dict: Dictionary containing the masked input tokens, attention mask, and labels.
+            dict: Dictionary containing the input_ids, attention_mask, and labels for the given sentence.
         """
-        text = self.texts[idx]
-        inputs = self.tokenizer(
-            text,
-            add_special_tokens=True,
-            return_tensors="pt",
-            padding="max_length",
-            truncation=True,
-            max_length=self.max_tokens,
-        )
-        input_ids = inputs["input_ids"].squeeze()
-        attention_mask = inputs["attention_mask"].squeeze()
+        try:
+            sentence = self.sentences[idx]
+            encoding = self.tokenizer.encode_plus(
+                sentence,
+                add_special_tokens=True,
+                max_length=self.max_tokens,
+                padding="max_length",
+                truncation=True,
+                return_attention_mask=True,
+                return_tensors="pt",
+            )
+            input_ids = encoding["input_ids"].squeeze()
+            attention_mask = encoding["attention_mask"].squeeze()
 
-        masked_indices = [i for i, token in enumerate(input_ids) if token != self.tokenizer.pad_token_id]
-        num_masked = max(1, int(len(masked_indices) * self.mask_prob))
-        masked_indices = random.sample(masked_indices, num_masked)
-
-        input_ids_masked = input_ids.detach().clone()
-        for idx in masked_indices:
-            input_ids_masked[idx] = self.tokenizer.mask_token_id
-
-        return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": input_ids_masked}
+            return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": input_ids.clone()}
+        except Exception as e:
+            raise Exception(f"Failed to process item at index {idx}: {str(e)}")

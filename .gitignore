@@ -30,3 +30,5 @@ build/
 # Ignore the data/* directory
 data/*
 outputs/*
+logs/*
+checkpoints/*

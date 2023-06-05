@@ -1,7 +1,7 @@
 trainer:
   devices: auto
   accelerator: auto
-  strategy: auto
+  strategy: "deepspeed_stage_2"
   num_nodes: 1
   precision: 16
   max_steps: -1
@@ -13,7 +13,8 @@ trainer:
   default_root_dir: "${hydra:runtime.cwd}"
   enable_checkpointing: true
   fast_dev_run: false
-  gradient_clip_val: null  # Set to null to use the default value
-  limit_train_batches: null  # Set to null to use the default value
-  limit_val_batches: null  # Set to null to use the default value
-  max_epochs: null
+  gradient_clip_val: null # Set to null to use the default value
+  limit_train_batches: null # Set to null to use the default value
+  limit_val_batches: null # Set to null to use the default value
+  max_epochs: 1000
+  enable_model_summary: False

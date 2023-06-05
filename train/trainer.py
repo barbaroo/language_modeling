@@ -1,9 +1,8 @@
-import logging
+from typing import Dict, List, Optional, Union
 
 import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset, random_split
 
 
 class MLMTrainer(pl.LightningModule):
@@ -11,27 +10,28 @@ class MLMTrainer(pl.LightningModule):
 
     def __init__(
         self,
-        model,
+        model: pl.LightningModule,
         tokenizer,
-        dataset,
-        batch_size,
-        lr,
-        num_workers,
-        gradient_clip_val,
-        accumulate_grad_batches,
-        train_test_split,
-    ):
+        dataset: Dataset,
+        batch_size: int,
+        lr: float,
+        num_workers: int,
+        gradient_clip_val: float,
+        accumulate_grad_batches: int,
+        train_test_split: float,
+    ) -> None:
         """Initialize the MLMTrainer.
 
         Args:
-            model (transformers.PreTrainedModel): Pre-trained masked language model.
-            tokenizer (transformers.PreTrainedTokenizer): Tokenizer for tokenizing the input.
-            dataset (DatasetForMLM): Dataset for masked language modeling.
+            model (pl.LightningModule): Pre-trained masked language model.
+            tokenizer: Tokenizer for tokenizing the input.
+            dataset (Dataset): Dataset for masked language modeling.
             batch_size (int): Batch size for training.
             lr (float): Learning rate for optimization.
             num_workers (int): Number of workers for data loading.
             gradient_clip_val (float): Maximum norm of the gradients.
             accumulate_grad_batches (int): The amount of gradient accumulation steps.
+            train_test_split (float): The fraction of dataset to be used for training.
         """
         super().__init__()
         self.model = model
@@ -44,88 +44,58 @@ class MLMTrainer(pl.LightningModule):
         self.accumulate_grad_batches = accumulate_grad_batches
         self.split = train_test_split
 
-        # Enable/Disable progress bar
-        self.enable_progress_bar = True
-
-    def setup(self, stage=None):
+    def setup(self, stage: Optional[str] = None) -> None:
         """Setup the dataset for training and validation.
 
         Args:
             stage (str, optional): The stage being setup (e.g., 'fit', 'test'). Defaults to None.
         """
         train_length = int((1 - self.split) * len(self.dataset))
-        self.dataset_train, self.dataset_val = torch.utils.data.random_split(
+        self.dataset_train, self.dataset_val = random_split(
             self.dataset, [train_length, len(self.dataset) - train_length]
         )
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         """Get the training dataloader.
 
         Returns:
-            torch.utils.data.DataLoader: Training dataloader.
+            DataLoader: Training dataloader.
         """
         return DataLoader(self.dataset_train, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         """Get the validation dataloader.
 
         Returns:
-            torch.utils.data.DataLoader: Validation dataloader.
+            DataLoader: Validation dataloader.
         """
         return DataLoader(self.dataset_val, batch_size=self.batch_size, num_workers=self.num_workers)
 
-    def forward(self, input_ids, attention_mask, labels):
-        """Forward pass of the model.
-
-        Args:
-            input_ids (torch.Tensor): Tensor containing the input token IDs.
-            attention_mask (torch.Tensor): Tensor containing the attention mask.
-            labels (torch.Tensor): Tensor containing the labels.
-
-        Returns:
-            torch.Tensor: Loss value.
-        """
-        outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
-        return outputs.loss
-
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
         """Training step for a batch of data.
 
         Args:
-            batch (dict): Dictionary containing a batch of data.
+            batch (Dict[str, torch.Tensor]): Dictionary containing a batch of data.
             batch_idx (int): Index of the batch.
 
         Returns:
             torch.Tensor: Loss value.
         """
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        labels = batch["labels"]
-
-        loss = self.forward(input_ids, attention_mask, labels)
-
-        self.log("train_loss", loss, on_step=True, on_epoch=False, prog_bar=True, logger=True)
+        loss = self.model(**batch)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> None:
         """Validation step for a batch of data.
 
         Args:
-            batch (dict): Dictionary containing a batch of data.
+            batch (Dict[str, torch.Tensor]): Dictionary containing a batch of data.
             batch_idx (int): Index of the batch.
-
-        Returns:
-            dict: Dictionary containing the loss value.
         """
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        labels = batch["labels"]
+        val_loss = self.model(**batch)
+        self.log("val_loss", val_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-        loss = self.forward(input_ids, attention_mask=attention_mask, labels=labels)
-
-        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Dict[str, Union[torch.optim.Optimizer, float, int]]:
         """Configure the optimizer and return it along with gradient clipping value and gradient accumulation settings.
 
         Returns:
@@ -138,7 +108,7 @@ class MLMTrainer(pl.LightningModule):
             "accumulate_grad_batches": self.accumulate_grad_batches,
         }
 
-    def save_model(self, file_path):
+    def save_model(self, file_path: str) -> None:
         """Save the model to a file.
 
         Args:
@@ -146,7 +116,7 @@ class MLMTrainer(pl.LightningModule):
         """
         torch.save(self.model.state_dict(), file_path)
 
-    def load_model(self, file_path):
+    def load_model(self, file_path: str) -> None:
         """Load the model from a file.
 
         Args:

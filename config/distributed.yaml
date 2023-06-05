@@ -1,0 +1,5 @@
+distributed:
+  world_size: 3
+  rank: 0
+  dist_backend: "nccl"
+  communication_backend: "gloo"

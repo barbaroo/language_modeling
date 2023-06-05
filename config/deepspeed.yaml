@@ -1,0 +1,3 @@
+deepspeed:
+  enabled: true
+  strategy: "deepspeed_stage_2_offload" # "deepspeed_stage_3_offload"

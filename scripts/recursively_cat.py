@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 
 def recursive_cat(path):
     """Recursively concatenate the contents of all files in a given path.
@@ -16,7 +17,7 @@ def recursive_cat(path):
         file_path = os.path.join(path, file)
         if os.path.isfile(file_path):
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     file_contents = f.read()
                     contents.append(f"{file_path}:\n{file_contents}")
             except Exception as e:
@@ -25,7 +26,7 @@ def recursive_cat(path):
         elif os.path.isdir(file_path):
             contents.append(recursive_cat(file_path))
 
-    return '\n\n'.join(contents)
+    return "\n\n".join(contents)
 
 
 if __name__ == "__main__":

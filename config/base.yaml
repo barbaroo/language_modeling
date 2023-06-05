@@ -1,18 +1,25 @@
-seed: 42
-num_workers: null
-batch_size: 8
-lr: 0.00002
 defaults:
   - _self_
   - dataset
   - dev
   - trainer
+  - optimizer
+  - activation_checkpointing
+  - zero_optimization
+  - distributed
+
+seed: 42
+early_stopping_patience: 10
 
 model:
   name: "vesteinn/ScandiBERT-no-faroese"
 
 dataset:
-  sentences: "../data/Faroese.csv"
+  sentences: "${hydra:runtime.cwd}/data/Faroese.csv"
   train_test_split: 0.2
   mask_probability: 0.15
   max_tokens: 514
+  batch_size: 4 #8
+  num_workers:
+    20 #4
+    #number_examples: 2500
