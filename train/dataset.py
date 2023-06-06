@@ -22,7 +22,7 @@ class DatasetForMLM(Dataset):
         super().__init__()
         self.sentences = sentences
         self.tokenizer = tokenizer
-        self.max_tokens = max_tokens
+        self.max_tokens = max_tokens - tokenizer.num_special_tokens_to_add(pair=False)
 
     def __len__(self) -> int:
         """Returns the number of sentences in the dataset.
@@ -54,7 +54,8 @@ class DatasetForMLM(Dataset):
             )
             input_ids = encoding["input_ids"].squeeze()
             attention_mask = encoding["attention_mask"].squeeze()
-
+            
+            #return {"input_ids": input_ids, "attention_mask": attention_mask}
             return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": input_ids.clone()}
         except Exception as e:
             raise Exception(f"Failed to process item at index {idx}: {str(e)}")
